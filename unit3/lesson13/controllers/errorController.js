@@ -1,25 +1,26 @@
 "use strict";
 
-const httpStatus = require("http-status-codes");
-const path = require("path");
+// Import required modules
+const httpStatus = require("http-status-codes"); // Provides standard HTTP status codes
+const path = require("path"); // Helps handle and transform file paths
 
-// Log any error that occurs
+// Middleware to log all errors to the console
 exports.logErrors = (error, req, res, next) => {
-  console.error(error.stack);
-  next(error);
+  console.error(error.stack); // Print the stack trace for debugging
+  next(error); // Pass the error to the next middleware
 };
 
-// Custom 404 handler
+// Middleware to handle 404 (Not Found) errors
 exports.respondNoResourceFound = (req, res) => {
-  let errorCode = httpStatus.StatusCodes.NOT_FOUND;
-  res.status(errorCode);
-  res.sendFile(path.join(__dirname, "../public/404.html"));
+  let errorCode = httpStatus.StatusCodes.NOT_FOUND; // Set the HTTP status code for "Not Found"
+  res.status(errorCode); // Send 404 status
+  res.sendFile(path.join(__dirname, "../public/404.html")); // Serve the custom 404 error page
 };
 
-// 500 Internal Server Error handler
+// Middleware to handle 500 (Internal Server Error)
 exports.respondInternalError = (error, req, res, next) => {
-  let errorCode = httpStatus.StatusCodes.INTERNAL_SERVER_ERROR;
-  console.log(`ERROR occurred: ${error.stack}`);
-  res.status(errorCode);
-  res.send(`${errorCode} | Sorry, our application is experiencing a problem!`);
+  let errorCode = httpStatus.StatusCodes.INTERNAL_SERVER_ERROR; // Set the HTTP status code for server errors
+  console.log(`ERROR occurred: ${error.stack}`); // Log the full error stack trace
+  res.status(errorCode); // Send 500 status
+  res.send(`${errorCode} | Sorry, our application is experiencing a problem!`); // Send a user-friendly message
 };
