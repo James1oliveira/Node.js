@@ -1,19 +1,20 @@
-"use strict";
+"use strict"; // Enforces strict mode for safer, cleaner JavaScript
 
-// Controller function to render the home page
+// === Controller for Homepage ===
+// Renders the "index.ejs" view when the root URL ("/") is requested.
 exports.showHome = (req, res) => {
-    res.render("index"); // Render the 'index' EJS template
+    res.render("index"); // Render the homepage view (views/index.ejs)
 };
 
-// Controller function to render the courses page
+// === Controller for Courses Page ===
+// Renders the "courses.ejs" view and passes an array of courses to display.
 exports.showCourses = (req, res) => {
-    // Render the 'courses' EJS template and pass data to it
     res.render("courses", {
-        offeredCourses: [
-            "Italian Cooking",      // Example course
-            "Vegetarian Dishes",    // Example course
-            "Baking Basics",        // Example course
-            "Sushi for Beginners"   // Example course
+        offeredCourses: [                     // Data passed to the EJS template
+            "Italian Cooking",
+            "Vegetarian Dishes",
+            "Baking Basics",
+            "Sushi for Beginners"
         ]
     });
 };

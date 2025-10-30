@@ -1,52 +1,55 @@
-"use strict";
+"use strict"; // Enforces strict mode for cleaner, safer JavaScript
 
-// Import required modules
-const express = require("express"),            // Express framework for building web servers
-    layouts = require("express-ejs-layouts"),  // Middleware for EJS template layouts
-    mongoose = require("mongoose"),            // Mongoose library to interact with MongoDB
-    app = express(),                           // Create an Express application instance
-    port = 3000,                               // Port number the server will listen on
-    homeController = require("/controllers/homeController"),       // Controller for home and courses routes
-    subscribersController = require("./controllers/subscribersController"), // Controller for subscriber routes
-    errorController = require("./controllers/errorController");     // Controller for error handling
+// === Module Imports ===
+const express = require("express"),               // Web framework for building server applications
+    layouts = require("express-ejs-layouts"),     // Middleware to manage EJS layout templates
+    mongoose = require("mongoose"),               // MongoDB object data modeling (ODM) library
+    app = express(),                              // Initialize Express app
+    port = 3000,                                  // Define the port number for the server
+    homeController = require("./controllers/homeController"),           // Controller for homepage and courses
+    subscribersController = require("./controllers/subscribersController"), // Controller for managing subscribers
+    errorController = require("./controllers/errorController");          // Controller for error handling
 
 // === Database Connection ===
 mongoose.connect("mongodb://127.0.0.1:27017/confetti_cuisine", {
-    useNewUrlParser: true,       // Parse MongoDB connection string correctly
-    useUnifiedTopology: true     // Use the new topology engine
+    useNewUrlParser: true,
+    useUnifiedTopology: true
 });
-mongoose.Promise = global.Promise; // Use native promises
+// Set Mongoose to use native promises
+mongoose.Promise = global.Promise;
+
+// Confirm successful connection to MongoDB
 mongoose.connection.once("open", () => {
-    console.log("\n✅ Connected to MongoDB successfully!");
+    console.log("■ Connected to MongoDB successfully!");
 });
 
 // === View Engine Setup ===
-app.set("view engine", "ejs");  // Set EJS as the template engine
-app.use(layouts);               // Enable EJS layouts
-app.use(express.static("public")); // Serve static files (CSS, JS, images) from "public"
+app.set("view engine", "ejs"); // Use EJS as the templating engine
+app.use(layouts);              // Enable EJS layouts
+app.use(express.static("public")); // Serve static files (CSS, images, JS) from the “public” folder
 
-// === Middleware ===
-app.use(express.urlencoded({ extended: false })); // Parse URL-encoded form data
-app.use(express.json());                          // Parse JSON request bodies
+// === Middleware Setup ===
+app.use(express.urlencoded({ extended: false })); // Parse form data (URL-encoded)
+app.use(express.json());                          // Parse JSON data sent in requests
 
 // === ROUTES ===
 // Home and courses pages
-app.get("/", homeController.showHome);           // Render home page
-app.get("/courses", homeController.showCourses); // Render courses page
+app.get("/", homeController.showHome);            // GET request for homepage
+app.get("/courses", homeController.showCourses);  // GET request for courses page
 
 // Contact and subscription routes
-app.get("/contact", subscribersController.getSubscriptionPage); // Show subscription form
-app.post("/subscribe", subscribersController.saveSubscriber);   // Save new subscriber
+app.get("/contact", subscribersController.getSubscriptionPage); // Display subscription form
+app.post("/subscribe", subscribersController.saveSubscriber);   // Save subscriber data to MongoDB
 
-// Display all subscribers
-app.get("/subscribers", subscribersController.getAllSubscribers); // List all subscribers
+// Display all subscribers in the database
+app.get("/subscribers", subscribersController.getAllSubscribers);
 
 // === ERROR HANDLING ===
-app.use(errorController.logErrors);             // Log errors to console
-app.use(errorController.respondNoResourceFound); // Handle 404 Not Found
-app.use(errorController.respondInternalError);  // Handle 500 Internal Server Error
+app.use(errorController.logErrors);               // Log all errors
+app.use(errorController.respondNoResourceFound);  // Handle 404 Not Found errors
+app.use(errorController.respondInternalError);    // Handle 500 Internal Server errors
 
 // === Start Server ===
 app.listen(port, () => {
-    console.log(`\n🚀 Confetti Cuisine running on port ${port}`);
+    console.log(`■ Confetti Cuisine running on port ${port}`); // Confirm server is running
 });

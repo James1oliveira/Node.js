@@ -1,35 +1,43 @@
-"use strict";
+"use strict"; // Enforces strict mode for safer, cleaner JavaScript
 
-// Import required modules
-const mongoose = require("mongoose"),          // Mongoose library for MongoDB interaction
-    Subscriber = require("./models/subscriber"); // Subscriber Mongoose model
+// === Import Dependencies ===
+const mongoose = require("mongoose"),               // Library for interacting with MongoDB
+    Subscriber = require("./models/subscriber");    // Import the Subscriber model
 
 // === Connect to MongoDB ===
+// Establish a connection to the local "confetti_cuisine" database.
 mongoose.connect("mongodb://127.0.0.1:27017/confetti_cuisine", {
-    useNewUrlParser: true,      // Parse connection string correctly
-    useUnifiedTopology: true    // Use new topology engine
+    useNewUrlParser: true,
+    useUnifiedTopology: true
 });
-mongoose.Promise = global.Promise; // Use native promises
 
-// === Sample subscriber data to seed the database ===
+// Set Mongoose to use global Promises (to avoid deprecation warnings)
+mongoose.Promise = global.Promise;
+
+// === Sample Subscriber Data ===
+// This array holds the initial data that will be inserted into the database.
 const subscribers = [
     { name: "John Doe", email: "john@example.com", zipCode: 12345 },
     { name: "Jane Smith", email: "jane@example.com", zipCode: 67890 }
 ];
 
-// === Seed the database ===
-// First, delete all existing subscribers
-Subscriber.deleteMany()
+// === Database Seeding Process ===
+// 1. Delete all existing subscriber records
+// 2. Insert (create) new subscribers from the array above
+// 3. Log the inserted documents
+// 4. Close the database connection
+Subscriber.deleteMany()  // Step 1: Remove all documents from the 'subscribers' collection
     .then(() => {
-        // After deleting, create new subscriber documents using the array above
-        return Promise.all(
-            subscribers.map(s => Subscriber.create(s))
-        );
+        // Step 2: Create new documents based on the sample array
+        return Promise.all(subscribers.map(s => Subscriber.create(s)));
     })
     .then(results => {
-        console.log("\n✅ Database seeded:", results); // Log all inserted documents
-        mongoose.connection.close(); // Close the database connection
+        // Step 3: Confirm successful insertion and show the created records
+        console.log("■ Database seeded successfully:", results);
+        // Step 4: Close the MongoDB connection
+        mongoose.connection.close();
     })
     .catch(error => {
-        console.error("⚠️ Error seeding database:", error); // Log any errors
+        // Catch and log any errors during the process
+        console.error("❌ Error seeding the database:", error);
     });

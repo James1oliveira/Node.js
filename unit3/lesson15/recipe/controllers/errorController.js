@@ -1,25 +1,33 @@
-// Import required modules
-const httpStatus = require("http-status-codes"); // Provides standard HTTP status codes
-const path = require("path"); // Helps work with file and directory paths
+// === Import Required Modules ===
+const httpStatus = require("http-status-codes"); // Provides easy-to-read HTTP status code constants
+const path = require("path");                    // Helps resolve directory paths safely across OSes
 
-// Middleware to log errors
+// === Error Logging Middleware ===
+// Logs the complete error stack trace to the console.
+// Useful for debugging during development.
+// After logging, it passes the error to the next middleware in the chain.
 exports.logErrors = (error, req, res, next) => {
-    console.error(error.stack); // Log the full error stack to the console for debugging
-    next(error); // Pass the error to the next error-handling middleware
+    console.error(error.stack); // Print detailed error info in the terminal
+    next(error);                // Pass the error to the next error handler
 };
 
-// Middleware to handle 404 (Not Found) errors
+// === 404 Error Handler (Page Not Found) ===
+// This function runs when no route matches the incoming request.
+// It sets the response status to 404 and sends a custom "404.html" page.
 exports.respondNoResourceFound = (req, res) => {
-    let errorCode = httpStatus.StatusCodes.NOT_FOUND; // Set HTTP status code to 404
-    res.status(errorCode); // Send the 404 status code
-    // Send a custom 404 HTML page from the public folder
+    let errorCode = httpStatus.StatusCodes.NOT_FOUND; // Equivalent to HTTP status 404
+    res.status(errorCode);
+    // Send the "404.html" file stored in the "public" directory
     res.sendFile(path.join(__dirname, "../public/404.html"));
 };
 
-// Middleware to handle 500 (Internal Server Error)
+// === 500 Error Handler (Internal Server Error) ===
+// This middleware handles unexpected server errors.
+// It logs the error details and responds with a friendly message to the user.
 exports.respondInternalError = (error, req, res, next) => {
-    let errorCode = httpStatus.StatusCodes.INTERNAL_SERVER_ERROR; // Set HTTP status code to 500
-    console.log(`ERROR occurred: ${error.stack}`); // Log the error stack for debugging
-    res.status(errorCode); // Send the 500 status code
-    res.send(`${errorCode} | Sorry, our application is experiencing a problem!`); // User-friendly error message
+    let errorCode = httpStatus.StatusCodes.INTERNAL_SERVER_ERROR; // Equivalent to HTTP status 500
+    console.log(`ERROR occurred: ${error.stack}`);                // Log the stack trace for debugging
+    res.status(errorCode);
+    // Send a simple text message to the client
+    res.send(`${errorCode} | Sorry, our application is experiencing a problem!`);
 };
