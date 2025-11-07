@@ -1,27 +1,32 @@
-"use strict";
+"use strict"; // Enforce strict mode for safer JavaScript
 
-const User = require("../models/user");
+const User = require("../models/user"); // Import User model
 
 module.exports = {
+  // --- FETCH ALL USERS ---
   index: (req, res, next) => {
-    User.find()
+    User.find() // Retrieve all users from the database
       .then(users => {
-        res.locals.users = users;
-        next();
+        res.locals.users = users; // Store users in res.locals for the view
+        next(); // Pass control to next middleware/controller
       })
       .catch(error => {
         console.log(`Error fetching users: ${error.message}`);
-        next(error);
+        next(error); // Pass error to error-handling middleware
       });
   },
+
+  // Render the users index view
   indexView: (req, res) => {
     res.render("users/index");
   },
 
+  // Render form for creating a new user
   new: (req, res) => {
     res.render("users/new");
   },
 
+  // Create a new user in the database
   create: (req, res, next) => {
     let userParams = {
       name: {
@@ -34,7 +39,7 @@ module.exports = {
     };
     User.create(userParams)
       .then(user => {
-        res.locals.redirect = "/users";
+        res.locals.redirect = "/users"; // Path to redirect after creation
         res.locals.user = user;
         next();
       })
@@ -44,9 +49,10 @@ module.exports = {
       });
   },
 
+  // --- FETCH A SINGLE USER ---
   show: (req, res, next) => {
     let userId = req.params.id;
-    User.findById(userId)
+    User.findById(userId) // Find user by ID
       .then(user => {
         res.locals.user = user;
         next();
@@ -56,17 +62,18 @@ module.exports = {
         next(error);
       });
   },
+
+  // Render view for a single user
   showView: (req, res) => {
     res.render("users/show");
   },
 
-  // --- NEW METHODS BELOW ---
-
+  // --- EDIT USER ---
   edit: (req, res, next) => {
     let userId = req.params.id;
     User.findById(userId)
       .then(user => {
-        res.render("users/edit", { user });
+        res.render("users/edit", { user }); // Render edit form with user data
       })
       .catch(error => {
         console.log(`Error loading user for edit: ${error.message}`);
@@ -74,6 +81,7 @@ module.exports = {
       });
   },
 
+  // Update user data
   update: (req, res, next) => {
     let userId = req.params.id;
     let userParams = {
@@ -85,9 +93,9 @@ module.exports = {
       password: req.body.password,
       zipCode: req.body.zipCode
     };
-    User.findByIdAndUpdate(userId, { $set: userParams })
+    User.findByIdAndUpdate(userId, { $set: userParams }) // Update user by ID
       .then(() => {
-        res.locals.redirect = `/users/${userId}`;
+        res.locals.redirect = `/users/${userId}`; // Redirect to updated user page
         next();
       })
       .catch(error => {
@@ -96,11 +104,12 @@ module.exports = {
       });
   },
 
+  // Delete a user
   delete: (req, res, next) => {
     let userId = req.params.id;
-    User.findByIdAndRemove(userId)
+    User.findByIdAndRemove(userId) // Remove user by ID
       .then(() => {
-        res.locals.redirect = "/users";
+        res.locals.redirect = "/users"; // Redirect to users list after deletion
         next();
       })
       .catch(error => {
@@ -109,9 +118,10 @@ module.exports = {
       });
   },
 
+  // Redirect middleware
   redirectView: (req, res, next) => {
     let redirectPath = res.locals.redirect;
-    if (redirectPath) res.redirect(redirectPath);
-    else next();
+    if (redirectPath) res.redirect(redirectPath); // Redirect if path exists
+    else next(); // Otherwise continue to next middleware
   }
 };

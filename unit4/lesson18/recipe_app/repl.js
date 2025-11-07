@@ -1,209 +1,73 @@
-// const mongoose = require("mongoose");
-// const Subscriber = require("./models/subscriber");
-// const Course = require("./models/course");
-// let testCourse;
-// let testSubscriber;
+"use strict";
 
-// mongoose.connect(
-//     "mongodb://0.0.0.0:27017/recipe_db",
-//     { useNewUrlParser: true }
-// );
+// === IMPORT REQUIRED MODULES ===
+const mongoose = require("mongoose");              // Mongoose for connecting to MongoDB
+const Subscriber = require("./models/subscriber"); // Import Subscriber model
+const User = require("./models/user");             // Import User model
 
-// mongoose.Promise = global.Promise;
-// Subscriber.remove({})
-//     .then((items) => console.log(`Removed ${items.n} records!`))
-//     .then(() => {
-//         return Course.remove({});
-//     })
-//     .then((items) => console.log(`Removed ${items.n} records!`))
-//     .then(() => {
-//         return Subscriber.create({
-//             name: "Jon",
-//             email: "jon@jonwexler.com",
-//             zipCode: "12345"
-//         });
-//     })
-//     .then(subscriber => {
-//         console.log(`Created Subscriber: ${subscriber.getInfo()}`);
-//     })
-//     .then(() => {
-//         return Subscriber.findOne({
-//             name: "Jon"
-//         });
-//     })
-//     .then(subscriber => {
-//         testSubscriber = subscriber;
-//         console.log(`Found one subscriber: ${subscriber.getInfo()}`);
-//     })
-//     .then(() => {
-//         return Course.create({
-//             title: "Tomato Land",
-//             description: "Locally farmed tomatoes only",
-//             zipCode: 12345,
-//             items: ["cherry", "heirloom"]
-//         });
-//     })
-//     .then(course => {
-//         testCourse = course;
-//         console.log(`Created course: ${course.title}`);
-//     })
-//     .then(() => {
-//         testSubscriber.courses.push(testCourse);
-//         testSubscriber.save();
-//     })
-//     .then(() => {
-//         return Subscriber.populate(testSubscriber, "courses");
-//     })
-//     .then(subscriber => console.log(subscriber))
-//     .then(() => {
-//         return Subscriber.find({
-//             courses: mongoose.Types.ObjectId(testCourse._id)
-//         });
-//     })
-//     .then(subscriber => console.log(subscriber));
 
-/**********USER*********/
-// const mongoose = require("mongoose");
-// const User = require("./models/user");
-// const Subscriber = require("./models/subscriber");
-// let testUser;
-// let targetSubscriber;
-
-// mongoose.connect(
-//     "mongodb://0.0.0.0:27017/recipe_db",
-//     { useNewUrlParser: true }
-// );
-
-// //creating subscriber
-// Subscriber.create({
-//     name: "Test User",
-//     email: "testUser@gmail.com",
-//     zipCode: "12345"})
-//     .then(subscriber => console.log(`Subscriber: ${subscriber}`))
-//     .catch(error => console.log(error.message));
-
-// //creating user (linked to subscriber)    
-//     User.create({
-//       name: {
-//         first: "Test",
-//         last: "User",
-//       },
-//       email: "testUser@gmail.com",
-//       password: "testing",
-//     })
-//       .then((user) => {
-//         testUser = user;
-//         //find and link user to their subscribed account using email address
-//         return Subscriber.findOne({
-//           email: testUser.email,
-//         });
-//       })
-//       .then((subscriber) => {
-//         if (subscriber) {
-//           // Link the subscriber to the user (using the subscriber's id)
-//           testUser.subscribedAccount = subscriber._id;
-//           return testUser.save();
-//         } else {
-//           throw new Error('Subscriber not found');
-//         //   console.error(err);
-//         }
-//       })
-//       .then((updatedUser) => {
-//         console.log(`Updated User: ${updatedUser}`);
-//         console.log("USER UPDATED!");
-//       })
-//       .catch((error) => console.log(error.message));
-
-// User.create({
-//     name: {
-//         first: "Jon",
-//         last: "Wexler"
-//     },
-//     email: "jon@jonwexler.com",
-//     password: "pass123"
-// })
-//     .then(user => testUser = user)
-//     .catch(error => console.log(error.message));
-
-// //setting our target subscriber
-// Subscriber.findOne({
-//     email: testUser.email
-// })
-//     .then(subscriber => {
-//         targetSubscriber = subscriber
-//         console.log(targetSubscriber);
-//     });
-
-//creating user
-// User.create({
-//     name: {
-//         first: "Jon",
-//         last: "Wexler"
-//     },
-//     email: "jon@jonwexler.com",
-//     password: "pass123"
-// })
-//     .then(user => {
-//         testUser = user;
-//         return Subscriber.findOne({
-//             email: user.email
-//         });
-//     })
-//     .then(subscriber => {
-//         //connecting user to their subscription
-//         //user will be a subscriber as well
-//         testUser.subscribedAccount = subscriber;
-//         testUser.save().then(user => console.log("user updated"));
-//     })
-//     .catch(error => console.log(error.message));
-
-const mongoose = require("mongoose");
-const Subscriber = require("./models/subscriber");
-const User = require("./models/user");
-
+// === CONNECT TO MONGODB DATABASE ===
+// Connects to a local MongoDB instance running on port 27017
+// Database name: recipe_db
 mongoose.connect("mongodb://0.0.0.0:27017/recipe_db", {
     useNewUrlParser: true,
 });
 
+// Set Mongoose to use native JavaScript promises
 mongoose.Promise = global.Promise;
 
-//Create a Subscriber
-Subscriber.create({
-    name: "Test User",
-    email: "testUser7@gmail.com",
-    zipCode: "12345"
-})
-    .then(subscriber => console.log(`Subscriber: ${subscriber}`))
-    .catch(error => console.log(error.message));
 
-//Create a User
+// === STEP 1: CREATE A NEW SUBSCRIBER ===
+// This creates a new record in the "subscribers" collection
+Subscriber.create({
+    name: "Test User",                  // Subscriber’s full name
+    email: "testUser7@gmail.com",       // Subscriber’s email
+    zipCode: "12345"                    // Subscriber’s postal code
+})
+    .then(subscriber => console.log(`✅ Subscriber created: ${subscriber}`)) // Logs success
+    .catch(error => console.log(`❌ Error creating subscriber: ${error.message}`)); // Logs any errors
+
+
+// === STEP 2: CREATE A NEW USER ===
+// Declare a variable to store the user so we can modify it later
 let testUser;
 
+// Create a user record that matches the subscriber by email
 User.create({
     name: {
-        first: "Test",
-        last: "User",
+        first: "Test",   // First name
+        last: "User"     // Last name
     },
-    email: "testUser7@gmail.com",
-    password: "testing",
+    email: "testUser7@gmail.com", // Must match the subscriber’s email to link them
+    password: "testing",          // Example password (would be hashed in production)
 })
     .then((user) => {
-        testUser = user;
+        testUser = user; // Store the newly created user object
+        console.log(`✅ User created: ${user.fullName}`);
+        
+        // === STEP 3: FIND A SUBSCRIBER WITH THE SAME EMAIL ===
+        // The idea is to link the user to their subscriber record
         return Subscriber.findOne({
-            email: testUser.email,
+            email: testUser.email, // Look for subscriber by email
         });
     })
     .then((subscriber) => {
         if (subscriber) {
-            // Link the subscriber to the user
+            // === STEP 4: LINK THE USER TO THE SUBSCRIBER ===
+            // Use the subscriber’s MongoDB _id to create a relationship
             testUser.subscribedAccount = subscriber._id;
+
+            // Save the updated user document to the database
             return testUser.save();
         } else {
-            throw new Error('Subscriber not found');
+            // If no subscriber was found for that email
+            throw new Error('❌ Subscriber not found for this email');
         }
     })
     .then((updatedUser) => {
-        console.log(`Updated User: ${updatedUser}`);
-        console.log("USER UPDATED!");
+        // === STEP 5: CONFIRM SUCCESS ===
+        // After saving, log confirmation that the user is linked
+        console.log(`✅ Updated User (linked to subscriber): ${updatedUser}`);
+        console.log("🎉 USER SUCCESSFULLY LINKED TO SUBSCRIBER!");
     })
-    .catch((error) => console.log(error.message));
+    .catch((error) => console.log(`❌ Error: ${error.message}`));

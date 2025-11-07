@@ -8,8 +8,8 @@ const mongoose = require("mongoose"),           // MongoDB ODM (Object Data Mode
 
 // === Connect to MongoDB Database ===
 mongoose.connect("mongodb://127.0.0.1:27017/confetti_cuisine", {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
+    useNewUrlParser: true,      // Use new URL parser to avoid deprecation warnings
+    useUnifiedTopology: true    // Use new topology engine
 });
 
 // Use global Promises to avoid deprecation warnings
@@ -34,7 +34,7 @@ Course.deleteMany()
     })
     // === Step 3: Log and Store the Created Course ===
     .then(course => {
-        testCourse = course;
+        testCourse = course; // Store the created course for linking later
         console.log("■ Course created:", testCourse.title);
 
         // === Step 4: Create a New User ===
@@ -48,7 +48,7 @@ Course.deleteMany()
     // === Step 5: Link the User to the Course ===
     .then(user => {
         testUser = user;
-        // Push the created course into the user's 'courses' array
+        // Add the created course to the user's 'courses' array
         testUser.courses.push(testCourse);
         // Save the updated user document
         return testUser.save();
@@ -71,13 +71,13 @@ Course.deleteMany()
         console.log("■ Subscriber linked to user account!");
 
         // === Step 9: Populate User Reference in Subscriber ===
-        // This replaces the userAccount ID with full user data
+        // Replace the userAccount ID with full user document data
         return Subscriber.populate(testSubscriber, "userAccount");
     })
     // === Step 10: Log the Final Linked Subscriber ===
     .then(subscriber => {
         console.log("■ Linked subscriber:", subscriber);
-        // Close the MongoDB connection
+        // Close the MongoDB connection after all operations
         mongoose.connection.close();
     })
     // === Error Handling ===
