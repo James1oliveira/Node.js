@@ -1,154 +1,125 @@
-"use strict";
+"use strict"; // Enforce strict mode for safer JavaScript
 
-const express = require("express");
-const app = express();
+// ----------------------------
+// MODULE IMPORTS
+// ----------------------------
+const express = require("express"); // Express framework
+const app = express(); // Initialize Express app
 
 //------------------------------------------------------
-const router = require("./routes/index");
+// ROUTER IMPORTS
 //------------------------------------------------------
+const router = require("./routes/index"); // Main router combining all route modules
 
-const layouts = require("express-ejs-layouts");
-const mongoose = require("mongoose");
-const methodOverride = require("method-override");
-const expressSession = require("express-session");
-const cookieParser = require("cookie-parser");
-const connectFlash = require("connect-flash");
-const expressValidator = require("express-validator");
-const passport = require("passport");
-const homeController = require("./controllers/homeController");
-const User = require("./models/user");
+// ----------------------------
+// OTHER MODULE IMPORTS
+// ----------------------------
+const layouts = require("express-ejs-layouts"); // EJS layout templates
+const mongoose = require("mongoose"); // MongoDB ODM
+const methodOverride = require("method-override"); // Support PUT/DELETE in forms
+const expressSession = require("express-session"); // Session middleware
+const cookieParser = require("cookie-parser"); // Parse cookies
+const connectFlash = require("connect-flash"); // Flash messages
 
+const passport = require("passport"); // Authentication
+const homeController = require("./controllers/homeController"); // Home page controller
+const User = require("./models/user"); // User model
+// Example in a route file:
+const { body, validationResult } = require("express-validator");
 
-
+router.post("/users", 
+  body("email").isEmail().normalizeEmail(),
+  body("password").isLength({ min: 5 }),
+  (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      // Handle validation errors
+      req.flash("error", "Invalid input");
+      return res.redirect("back");
+    }
+    // Process valid data
+  }
+);
+// ----------------------------
+// DATABASE CONFIGURATION
+// ----------------------------
 mongoose.Promise = global.Promise;
-
 mongoose.connect(
   "mongodb://0.0.0.0:27017/recipe_db",
   { useNewUrlParser: true }
 );
-mongoose.set("useCreateIndex", true);
+// mongoose.set("useCreateIndex", true); <- REMOVE THIS LINE
 
 const db = mongoose.connection;
-
 db.once("open", () => {
   console.log("Successfully connected to MongoDB using Mongoose!");
 });
+// ----------------------------
+// EXPRESS CONFIGURATION
+// ----------------------------
+app.set("port", process.env.PORT || 3000); // Set server port
+app.set("view engine", "ejs"); // Use EJS for templating
 
-app.set("port", process.env.PORT || 3000);
-app.set("view engine", "ejs");
-
+// Serve static assets from public folder
 app.use(express.static("public"));
+
+// Enable EJS layouts
 app.use(layouts);
-app.use(
-  express.urlencoded({
-    extended: false
-  })
-);
 
-app.use(
-  methodOverride("_method", {
-    methods: ["POST", "GET"]
-  })
-);
+// Parse URL-encoded bodies (form submissions)
+app.use(express.urlencoded({ extended: false }));
 
+// Allow PUT and DELETE methods in forms via query param _method
+app.use(methodOverride("_method", { methods: ["POST", "GET"] }));
+
+// Parse JSON request bodies
 app.use(express.json());
+
+// Configure cookies and session handling
 app.use(cookieParser("secret_passcode"));
 app.use(
   expressSession({
-    secret: "secret_passcode",
-    cookie: {
-      maxAge: 4000000
-    },
-    resave: false,
-    saveUninitialized: false
+    secret: "secret_passcode", // Secret key for session
+    cookie: { maxAge: 4000000 }, // Cookie expiry in milliseconds
+    resave: false, // Only save session if modified
+    saveUninitialized: false // Don't create session until something stored
   })
 );
 
+// ----------------------------
+// PASSPORT AUTHENTICATION
+// ----------------------------
 app.use(passport.initialize());
-app.use(passport.session());
-passport.use(User.createStrategy());
-passport.serializeUser(User.serializeUser());
-passport.deserializeUser(User.deserializeUser());
-app.use(connectFlash());
+app.use(passport.session()); // Persist login sessions
+passport.use(User.createStrategy()); // Passport-local strategy via User model
+passport.serializeUser(User.serializeUser()); // Store user ID in session
+passport.deserializeUser(User.deserializeUser()); // Retrieve user from session
 
+// ----------------------------
+// FLASH MESSAGES & LOCALS
+// ----------------------------
+app.use(connectFlash());
 app.use((req, res, next) => {
-  res.locals.loggedIn = req.isAuthenticated();
-  res.locals.currentUser = req.user;
-  res.locals.flashMessages = req.flash();
+  res.locals.loggedIn = req.isAuthenticated(); // True if user logged in
+  res.locals.currentUser = req.user; // Current user object
+  res.locals.flashMessages = req.flash(); // Flash messages
   next();
 });
 
-app.use(expressValidator());
-app.use(homeController.logRequestPaths);
+// ----------------------------
+// VALIDATION & LOGGING
+// ----------------------------
+
+app.use(homeController.logRequestPaths); // Log all incoming requests
 
 //------------------------------------------------------
-app.use("/", router);
+// ROUTING
 //------------------------------------------------------
+app.use("/", router); // Mount main router at root path
 
-
+//------------------------------------------------------
+// START SERVER
+//------------------------------------------------------
 app.listen(app.get("port"), () => {
   console.log(`Server running at http://localhost:${app.get("port")}`);
 });
-
-/**
- * ===============================================================
- * 🍽️ Confetti Cuisine — Main Server File (server.js)
- * ===============================================================
- * 
- * This file is the main entry point for the Confetti Cuisine web application.
- * It sets up the Express server, connects to MongoDB, and configures
- * middleware, authentication, sessions, and routing.
- * 
- * ---------------------------------------------------------------
- * 🧩 TECHNOLOGIES USED
- * ---------------------------------------------------------------
- * - **Express.js** → Web framework for creating routes and middleware.
- * - **EJS + express-ejs-layouts** → Template engine and layout system for dynamic views.
- * - **Mongoose** → MongoDB ODM for schema modeling and database management.
- * - **Passport.js** → Authentication middleware for login and session handling.
- * - **express-session + cookie-parser + connect-flash** → Manages user sessions, cookies, and flash messages.
- * - **method-override** → Enables PUT and DELETE HTTP methods from HTML forms.
- * - **express-validator** → Middleware for validating user inputs (older implementation style).
- * 
- * ---------------------------------------------------------------
- * ⚙️ MAIN CONFIGURATION
- * ---------------------------------------------------------------
- * - Connects to MongoDB at `mongodb://0.0.0.0:27017/recipe_db`.
- * - Uses EJS as the templating engine and serves static assets from `/public`.
- * - Parses URL-encoded and JSON request bodies.
- * - Configures session handling with secure cookie settings.
- * - Sets up Passport.js for local authentication (via User model).
- * 
- * ---------------------------------------------------------------
- * 🧭 ROUTING & CONTROLLERS
- * ---------------------------------------------------------------
- * - Routes are imported from `./routes/index.js` and mounted at the root (`/`).
- * - `homeController.logRequestPaths` logs incoming request URLs.
- * - Controllers handle modular logic for different parts of the app:
- *    - `homeController` → Static pages & home route logic.
- *    - `usersController` → User CRUD and authentication.
- *    - `subscribersController` → Newsletter management.
- *    - `coursesController` → Course CRUD and viewing.
- * 
- * ---------------------------------------------------------------
- * 🚨 ERROR HANDLING
- * ---------------------------------------------------------------
- * - Errors and route issues are handled in `errorController.js` (not shown here).
- * - Flash messages provide user feedback on success/failure events.
- * 
- * ---------------------------------------------------------------
- * 🧠 NOTES
- * ---------------------------------------------------------------
- * - `expressValidator()` is used here for backward compatibility, but in modern Express,
- *   you should use the destructured import from `express-validator` instead:
- *   ```js
- *   const { body, validationResult } = require("express-validator");
- *   ```
- *   and apply validations directly in routes or controllers.
- * 
- * ---------------------------------------------------------------
- * 🚀 SERVER START
- * ---------------------------------------------------------------
- * - The server listens on port **3000** (or an environment-specified port).
- * - Logs successful connection messages for MongoDB and the Express server.
- */

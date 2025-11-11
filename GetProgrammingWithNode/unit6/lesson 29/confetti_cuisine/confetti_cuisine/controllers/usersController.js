@@ -1,67 +1,81 @@
-"use strict"; // Enables strict mode for better error handling and cleaner JavaScript
-const { body, validationResult } = require('express-validator'); // Imports express-validator methods for input validation
-const User = require("../models/user"), // Imports the User model
-  passport = require("passport"), // Imports Passport for authentication
-  getUserParams = body => { // Helper function to extract user data from request body
-    return {
-      name: {
-        first: body.first, // User's first name
-        last: body.last // User's last name
-      },
-      email: body.email, // User's email
-      password: body.password, // User's password
-      zipCode: body.zipCode // User's zip code
-    };
-  };
+"use strict"; // Enable strict mode to catch common JavaScript mistakes and enforce cleaner code
 
-module.exports = { // Export all controller functions
-  index: (req, res, next) => { // Fetch all users
-    User.find()
+// === Import Dependencies ===
+const { body, validationResult } = require('express-validator'); // Import validation and sanitization methods from express-validator
+const User = require("../models/user"); // Import the Mongoose User model
+const passport = require("passport"); // Import Passport for authentication
+
+// === Helper Function ===
+// Extract only the allowed user fields from request body to prevent unwanted data injection
+const getUserParams = body => {
+  return {
+    name: {
+      first: body.first, // First name of the user
+      last: body.last // Last name of the user
+    },
+    email: body.email, // Email address
+    password: body.password, // Password (handled by Passport-Local-Mongoose)
+    zipCode: body.zipCode // User's zip/postal code
+  };
+};
+
+// === Export Controller Methods ===
+module.exports = {
+
+  // === Fetch all users ===
+  index: (req, res, next) => {
+    User.find() // Query DB for all user documents
       .then(users => {
-        res.locals.users = users; // Store users in response locals
-        next(); // Pass control to next middleware
+        res.locals.users = users; // Store users in res.locals for use in views or later middleware
+        next(); // Proceed to next middleware
       })
       .catch(error => {
         console.log(`Error fetching users: ${error.message}`); // Log any errors
-        next(error); // Pass error to next middleware
+        next(error); // Forward error to error-handling middleware
       });
   },
 
-  indexView: (req, res) => { // Render the user list view
-    res.render("users/index");
+  // === Render user list view ===
+  indexView: (req, res) => {
+    res.render("users/index"); // Render "users/index" template (assumes users are in res.locals)
   },
 
-  new: (req, res) => { // Render form for creating a new user
-    res.render("users/new");
+  // === Render form to create new user ===
+  new: (req, res) => {
+    res.render("users/new"); // Render "users/new" template
   },
 
-  create: (req, res, next) => { // Handle new user creation
-    if (req.skip) next(); // Skip if validation failed
-    let newUser = new User(getUserParams(req.body)); // Create new user object
-    User.register(newUser, req.body.password, (e, user) => { // Register new user using Passport-Local-Mongoose
+  // === Handle creation of a new user ===
+  create: (req, res, next) => {
+    if (req.skip) next(); // Skip creation if validation failed in previous middleware
+    let newUser = new User(getUserParams(req.body)); // Create a new user object with sanitized data
+    // Use Passport-Local-Mongoose to register user with hashed password
+    User.register(newUser, req.body.password, (e, user) => {
       if (user) {
-        req.flash("success", `${user.fullName}'s account created successfully!`); // Success message
-        res.locals.redirect = "/users"; // Redirect path after creation
-        next();
+        req.flash("success", `${user.fullName}'s account created successfully!`); // Flash success message
+        res.locals.redirect = "/users"; // Set redirect path after successful creation
+        next(); // Proceed to redirectView or next middleware
       } else {
-        req.flash("error", `Failed to create user account because: ${e.message}.`); // Error message
-        res.locals.redirect = "/users/new"; // Redirect to new user form
+        req.flash("error", `Failed to create user account because: ${e.message}.`); // Flash error message
+        res.locals.redirect = "/users/new"; // Redirect back to creation form
         next();
       }
     });
   },
 
-  redirectView: (req, res, next) => { // Handle redirects
-    let redirectPath = res.locals.redirect; // Retrieve redirect path
+  // === Redirect helper ===
+  redirectView: (req, res, next) => {
+    let redirectPath = res.locals.redirect; // Retrieve redirect path from locals
     if (redirectPath !== undefined) res.redirect(redirectPath); // Redirect if path exists
-    else next(); // Otherwise, continue
+    else next(); // Otherwise, continue middleware chain
   },
 
-  show: (req, res, next) => { // Fetch single user by ID
-    let userId = req.params.id; // Get user ID from URL
-    User.findById(userId)
+  // === Fetch single user by ID ===
+  show: (req, res, next) => {
+    let userId = req.params.id; // Get user ID from route parameter
+    User.findById(userId) // Find user document by ID
       .then(user => {
-        res.locals.user = user; // Store user in locals
+        res.locals.user = user; // Store user in res.locals for later middleware/view
         next();
       })
       .catch(error => {
@@ -70,62 +84,67 @@ module.exports = { // Export all controller functions
       });
   },
 
-  showView: (req, res) => { // Render user details view
-    res.render("users/show");
+  // === Render user detail view ===
+  showView: (req, res) => {
+    res.render("users/show"); // Render "users/show" template
   },
 
-  edit: (req, res, next) => { // Render edit user form
-    let userId = req.params.id; // Get user ID
+  // === Render form to edit user ===
+  edit: (req, res, next) => {
+    let userId = req.params.id; // Get user ID from route
     User.findById(userId)
       .then(user => {
-        res.render("users/edit", { user: user }); // Render edit form with user data
+        res.render("users/edit", { user: user }); // Render edit form with pre-filled user data
       })
       .catch(error => {
-        console.log(`Error fetching user by ID: ${error.message}`); // Log error
+        console.log(`Error fetching user by ID: ${error.message}`);
         next(error);
       });
   },
 
-  update: (req, res, next) => { // Handle user updates
-    let userId = req.params.id, // Get user ID
-      userParams = getUserParams(req.body); // Extract updated info
-
-    User.findByIdAndUpdate(userId, { $set: userParams }) // Update user record
+  // === Update user ===
+  update: (req, res, next) => {
+    let userId = req.params.id; // Get user ID
+    let userParams = getUserParams(req.body); // Extract updated user data
+    User.findByIdAndUpdate(userId, { $set: userParams }) // Update user document
       .then(user => {
-        res.locals.redirect = `/users/${userId}`; // Redirect to user profile
-        res.locals.user = user; // Store updated user
+        res.locals.redirect = `/users/${userId}`; // Redirect to updated user's show page
+        res.locals.user = user; // Store (pre-update) user data in locals
         next();
       })
       .catch(error => {
-        console.log(`Error updating user by ID: ${error.message}`); // Log error
+        console.log(`Error updating user by ID: ${error.message}`);
         next(error);
       });
   },
 
-  delete: (req, res, next) => { // Delete a user by ID
+  // === Delete user ===
+  delete: (req, res, next) => {
     let userId = req.params.id; // Get user ID
-    User.findByIdAndRemove(userId)
+    User.findByIdAndRemove(userId) // Delete user document
       .then(() => {
         res.locals.redirect = "/users"; // Redirect to users list
         next();
       })
       .catch(error => {
-        console.log(`Error deleting user by ID: ${error.message}`); // Log error
+        console.log(`Error deleting user by ID: ${error.message}`);
         next();
       });
   },
 
-  login: (req, res) => { // Render login page
-    res.render("users/login");
+  // === Render login form ===
+  login: (req, res) => {
+    res.render("users/login"); // Render "users/login" template
   },
 
-  validate: [ // Validation middleware array
+  // === Validation middleware array ===
+  validate: [
     body("first").notEmpty().withMessage("First name cannot be empty"), // Validate first name
     body("last").notEmpty().withMessage("Last name cannot be empty"), // Validate last name
     body("email")
       .normalizeEmail({ all_lowercase: true }) // Normalize email
       .isEmail()
-      .withMessage("Email is invalid"), // Validate email
+      .withMessage("Email is invalid"), // Validate email format
     body("zipCode")
       .notEmpty()
       .isInt()
@@ -133,30 +152,32 @@ module.exports = { // Export all controller functions
       .withMessage("Zip code is invalid"), // Validate zip code
     body("password").notEmpty().withMessage("Password cannot be empty"), // Validate password
     (req, res, next) => { // Handle validation results
-      const errors = validationResult(req); // Check for errors
-      if (!errors.isEmpty()) { // If validation fails
-        let messages = errors.array().map(e => e.msg); // Collect error messages
+      const errors = validationResult(req); // Get validation errors
+      if (!errors.isEmpty()) {
+        let messages = errors.array().map(e => e.msg); // Extract error messages
         req.skip = true; // Skip user creation
-        req.flash("error", messages.join(" and ")); // Flash error message
-        res.locals.redirect = "/users/new"; // Redirect back to form
+        req.flash("error", messages.join(" and ")); // Flash errors
+        res.locals.redirect = "/users/new"; // Redirect back to creation form
         next();
       } else {
-        next(); // Proceed if validation passed
+        next(); // Proceed if no validation errors
       }
     }
   ],
 
-  authenticate: passport.authenticate("local", { // Use Passport for login authentication
-    failureRedirect: "/users/login", // Redirect if login fails
+  // === Authenticate user login ===
+  authenticate: passport.authenticate("local", {
+    failureRedirect: "/users/login", // Redirect on failure
     failureFlash: "Failed to login.", // Flash error message
     successRedirect: "/", // Redirect on success
     successFlash: "Logged in!" // Flash success message
   }),
 
-  logout: (req, res, next) => { // Handle user logout
-    req.logout((err) => { // Log user out of session with callback
+  // === Logout user ===
+  logout: (req, res, next) => {
+    req.logout((err) => { // Logout user using Passport's callback
       if (err) {
-        return next(err); // Pass error to error handler if logout fails
+        return next(err); // Forward error if logout fails
       }
       req.flash("success", "You have been logged out!"); // Flash success message
       res.locals.redirect = "/"; // Redirect to homepage

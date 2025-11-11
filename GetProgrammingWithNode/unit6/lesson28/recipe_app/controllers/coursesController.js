@@ -1,46 +1,61 @@
 "use strict";
 
-const Course = require("../models/course");
-const httpStatus = require("http-status-codes");
-const User = require("../models/user");
+// =======================================
+// Import dependencies and models
+// =======================================
+const Course = require("../models/course");  // Mongoose model for courses
+const httpStatus = require("http-status-codes"); // Standard HTTP status codes
+const User = require("../models/user");      // Mongoose model for users
 
 module.exports = {
+
+  // =======================================
+  // Fetch all courses from DB
+  // Stores them in res.locals.courses for downstream middleware
+  // =======================================
   index: (req, res, next) => {
     Course.find({})
       .then(courses => {
         res.locals.courses = courses;
-        next();
+        next(); // Proceed to next middleware
       })
       .catch(error => {
         console.log(`Error fetching courses: ${error.message}`);
-        next(error);
+        next(error); // Pass error to error handling middleware
       });
   },
-  indexView: (req, res) => {
-    // if (req.query.format === "json") {
-    //   res.json(res.locals.courses);
-    // } else {
-    // res.render("courses/index");
-    // }
 
+  // =======================================
+  // Render view for listing courses
+  // Could optionally return JSON (commented out)
+  // =======================================
+  indexView: (req, res) => {
+    // res.render() sends the EJS template to the browser
     res.render("courses/index");
   },
+
+  // =======================================
+  // Render form for creating a new course
+  // =======================================
   new: (req, res) => {
     res.render("courses/new");
   },
 
+  // =======================================
+  // Create a new course in the database
+  // =======================================
   create: (req, res, next) => {
     let courseParams = {
       title: req.body.title,
       description: req.body.description,
-      items: [req.body.items.split(",")],
+      items: [req.body.items.split(",")], // Convert comma-separated string to array
       zipCode: req.body.zipCode
     };
     Course.create(courseParams)
       .then(course => {
-        res.locals.redirect = "/courses";
+        res.locals.redirect = "/courses"; // Redirect path after creation
         res.locals.course = course;
-        next();
+        next(); // Proceed to redirect middleware
       })
       .catch(error => {
         console.log(`Error saving course: ${error.message}`);
@@ -48,6 +63,10 @@ module.exports = {
       });
   },
 
+  // =======================================
+  // Fetch a single course by ID
+  // Store it in res.locals.course for downstream use
+  // =======================================
   show: (req, res, next) => {
     let courseId = req.params.id;
     Course.findById(courseId)
@@ -61,17 +80,21 @@ module.exports = {
       });
   },
 
+  // =======================================
+  // Render view to show a single course
+  // =======================================
   showView: (req, res) => {
     res.render("courses/show");
   },
 
+  // =======================================
+  // Render form for editing a course
+  // =======================================
   edit: (req, res, next) => {
     let courseId = req.params.id;
     Course.findById(courseId)
       .then(course => {
-        res.render("courses/edit", {
-          course: course
-        });
+        res.render("courses/edit", { course: course });
       })
       .catch(error => {
         console.log(`Error fetching course by ID: ${error.message}`);
@@ -79,20 +102,21 @@ module.exports = {
       });
   },
 
+  // =======================================
+  // Update course information in the database
+  // =======================================
   update: (req, res, next) => {
     let courseId = req.params.id,
-      courseParams = {
-        title: req.body.title,
-        description: req.body.description,
-        items: [req.body.items.split(",")],
-        zipCode: req.body.zipCode
-      };
+        courseParams = {
+          title: req.body.title,
+          description: req.body.description,
+          items: [req.body.items.split(",")],
+          zipCode: req.body.zipCode
+        };
 
-    Course.findByIdAndUpdate(courseId, {
-      $set: courseParams
-    })
+    Course.findByIdAndUpdate(courseId, { $set: courseParams })
       .then(course => {
-        res.locals.redirect = `/courses/${courseId}`;
+        res.locals.redirect = `/courses/${courseId}`; // Redirect to updated course
         res.locals.course = course;
         next();
       })
@@ -102,11 +126,14 @@ module.exports = {
       });
   },
 
+  // =======================================
+  // Delete a course from the database
+  // =======================================
   delete: (req, res, next) => {
     let courseId = req.params.id;
     Course.findByIdAndRemove(courseId)
       .then(() => {
-        res.locals.redirect = "/courses";
+        res.locals.redirect = "/courses"; // Redirect to course list after deletion
         next();
       })
       .catch(error => {
@@ -115,21 +142,30 @@ module.exports = {
       });
   },
 
+  // =======================================
+  // Middleware to handle redirection after operations
+  // =======================================
   redirectView: (req, res, next) => {
     let redirectPath = res.locals.redirect;
     if (redirectPath !== undefined) res.redirect(redirectPath);
     else next();
   },
 
+  // =======================================
+  // Respond with courses data in JSON format
+  // Used for API endpoints
+  // =======================================
   respondJSON: (req, res) => {
     res.json({
-      status: httpStatus.OK, //Code 200
-//Take locals object from index res.locals.courses variable and display it in JSON format instead of rendering data in EJS
-      data: res.locals
+      status: httpStatus.OK, // HTTP 200
+      data: res.locals // Data from previous middleware (courses, etc.)
     });
   },
 
-//If an error occurs, respond with status code 500 instead of redirecting to another browser view/page  
+  // =======================================
+  // Respond with JSON error (HTTP 500)
+  // Used for API endpoints
+  // =======================================
   errorJSON: (error, req, res, next) => {
     let errorObject;
 
@@ -140,28 +176,29 @@ module.exports = {
       };
     } else {
       errorObject = {
-      status: httpStatus.INTERNAL_SERVER_ERROR,
-      message: "Unknown Error"
-    };
-  }
-  res.json(errorObject);
+        status: httpStatus.INTERNAL_SERVER_ERROR,
+        message: "Unknown Error"
+      };
+    }
+    res.json(errorObject);
   },
 
+  // =======================================
+  // Allow a user to join a course
+  // =======================================
   join: (req, res, next) => {
     let courseId = req.params.id;
     let currentUser = req.user;
-    
-    if (currentUser) { //check if user currently logged in
+
+    if (currentUser) { // Ensure user is logged in
       User.findByIdAndUpdate(currentUser, {
-        $addToSet: {
-          courses: courseId
-        }
+        $addToSet: { courses: courseId } // Add course ID if not already enrolled
       })
-      .then( () => {
-        res.locals.success = true;
+      .then(() => {
+        res.locals.success = true; // Flag success for downstream middleware
         next();
       })
-      .catch( error => {
+      .catch(error => {
         next(error);
       });
     } else {
@@ -169,19 +206,19 @@ module.exports = {
     }
   },
 
+  // =======================================
+  // Add "joined" property to courses based on whether user is enrolled
+  // =======================================
   filterUserCourses: (req, res, next) => {
     let currentUser = res.locals.currentUser;
 
-    //Check if user is logged in
     if (currentUser) {
-      let mappedCourses = res.locals.courses.map( (course) => {
-        //userJoined value is True or False
-        let userJoined = currentUser.courses.some( (userCourse) => {
-          return userCourse.equals(course._id);
-        });
-        return Object.assign(course.toObject(), {joined: userJoined});
+      let mappedCourses = res.locals.courses.map(course => {
+        // Check if the user has joined this course
+        let userJoined = currentUser.courses.some(userCourse => userCourse.equals(course._id));
+        return Object.assign(course.toObject(), { joined: userJoined });
       });
-      res.locals.courses = mappedCourses;
+      res.locals.courses = mappedCourses; // Overwrite courses with enriched data
       next();
     } else {
       next();
