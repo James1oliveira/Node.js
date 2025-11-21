@@ -8,8 +8,7 @@ module.exports = (req, res) => {
         async (error) => {
             await BlogPost.create({
                 ...req.body,
-                image: '/img/' + image.name,
-                userid: req.session.userId
+                image: '/img/' + image.name
             })
             res.redirect('/')
         }

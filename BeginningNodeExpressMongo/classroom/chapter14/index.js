@@ -1,9 +1,11 @@
 const express = require("express");
-const app = express(); // FIX: Remove 'new' keyword
+const app = new express();
 const path = require("path");
 const ejs = require("ejs");
 const fileUpload = require("express-fileupload");
 const expressSession = require("express-session");
+const connectFlash = require("connect-flash"); // Add this line
+
 
 // Controllers
 const storeUserController = require("./controllers/storeUser");
@@ -15,6 +17,8 @@ const newPostController = require("./controllers/newPost");
 const homeController = require("./controllers/home");
 const storePostController = require("./controllers/storePost");
 const getPostController = require("./controllers/getPost");
+const aboutController = require('./controllers/about')
+const contactController = require('./controllers/contact')
 
 // Middleware
 const authMiddleware = require("./middleware/authMiddleware");
@@ -34,9 +38,10 @@ const validateMiddleWare = (req, res, next) => {
 
 // MongoDB
 const mongoose = require("mongoose");
-mongoose.connect("mongodb://localhost:27017/my_database") // FIX: Updated connection string
-  .then(() => console.log("MongoDB connected successfully"))
-  .catch((err) => console.error("MongoDB connection error:", err));
+mongoose.connect("mongodb://localhost/my_database", {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 
 // View Engine
 app.set("view engine", "ejs");
@@ -44,7 +49,6 @@ app.set("views", path.join(__dirname, "public", "views"));
 
 // Global Middleware
 app.use(express.static("public"));
-app.use(express.json()); // ADD: For parsing JSON
 app.use(express.urlencoded({ extended: false }));
 app.use(fileUpload());
 app.use(customMiddleWare);
@@ -52,11 +56,10 @@ app.use(customMiddleWare);
 app.use(
   expressSession({
     secret: "keyboard cat",
-    resave: false, // ADD: Recommended options
-    saveUninitialized: false,
-    cookie: { secure: false } // Set to true if using HTTPS
   })
 );
+
+app.use(connectFlash()); // Add this line - must come AFTER expressSession
 
 // Make loggedIn available globally
 global.loggedIn = null;
@@ -68,7 +71,8 @@ app.use((req, res, next) => {
 // Routes
 app.get("/", homeController);
 app.get("/post/:id", getPostController);
-
+app.get('/about', aboutController)
+app.get('/contact', contactController)
 // Auth Routes
 app.get("/auth/register", redirectIfAuthenticatedMiddleware, newUserController);
 app.post("/users/register", redirectIfAuthenticatedMiddleware, storeUserController);
